@@ -355,7 +355,7 @@ class PlotCurveItem(GraphicsObject):
             if isinstance(data, list):
                 data = np.array(data)
                 kargs[k] = data
-            if not isinstance(data, np.ndarray) or data.ndim > 1:
+            if not isinstance(data, np.ndarray):
                 raise Exception("Plot data must be 1D ndarray.")
             if 'complex' in str(data.dtype):
                 raise Exception("Can not plot complex data types.")
@@ -379,7 +379,7 @@ class PlotCurveItem(GraphicsObject):
             if len(self.xData) != len(self.yData)+1:  ## allow difference of 1 for step mode plots
                 raise Exception("len(X) must be len(Y)+1 since stepMode=True (got %s and %s)" % (self.xData.shape, self.yData.shape))
         else:
-            if self.xData.shape != self.yData.shape:  ## allow difference of 1 for step mode plots
+            if self.yData.ndim == 1 and self.yData.shape != self.xData.shape:
                 raise Exception("X and Y arrays must be the same shape--got %s and %s." % (self.xData.shape, self.yData.shape))
 
         self.path = None
@@ -412,6 +412,9 @@ class PlotCurveItem(GraphicsObject):
         profiler('emit')
 
     def generatePath(self, x, y):
+        if y.ndim == 2:
+            return [self.generatePath(x, yi) for yi in y]
+
         if self.opts['stepMode']:
             ## each value in the x/y arrays generates 2 points.
             x2 = np.empty((len(x),2), dtype=x.dtype)
@@ -488,6 +491,14 @@ class PlotCurveItem(GraphicsObject):
             p.fillPath(self.fillPath, self.opts['brush'])
             profiler('draw fill path')
 
+        if isinstance(path, list):
+            for ipath in path:
+                self.paintPath(p, ipath)
+        else:
+            self.paintpath(p, ipath)
+
+
+    def paintPath(self, p, path):
         sp = self.opts['shadowPen']
         cp = self.opts['pen']
 
@@ -510,11 +521,12 @@ class PlotCurveItem(GraphicsObject):
             p.drawPath(self.fillPath)
         else:
             p.drawPath(path)
-        profiler('drawPath')
+        #profiler('drawPath')
 
         #print "Render hints:", int(p.renderHints())
         #p.setPen(QtGui.QPen(QtGui.QColor(255,0,0)))
         #p.drawRect(self.boundingRect())
+
 
     def paintGL(self, p, opt, widget):
         p.beginNativePainting()
