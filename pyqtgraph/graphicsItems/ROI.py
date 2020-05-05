@@ -758,6 +758,9 @@ class ROI(GraphicsObject):
             remAct.triggered.connect(self.removeClicked)
             self.menu.addAction(remAct)
             self.menu.remAct = remAct
+        # ROI menu may be requested for the handle context menu, so return it
+        # but disable it if the ROI isn't removable
+        self.menu.setEnabled(self.contextMenuEnabled())
         return self.menu
 
     def removeClicked(self):
