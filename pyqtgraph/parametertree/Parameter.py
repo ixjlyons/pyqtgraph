@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from ..Qt import QtGui, QtCore
 import os, weakref, re
 from ..pgcollections import OrderedDict
@@ -188,13 +189,8 @@ class Parameter(QtCore.QObject):
         
         self.addChildren(self.opts.pop('children', []))
         
-        self.opts['value'] = None
         if value is not None:
             self.setValue(value)
-
-        if 'default' not in self.opts:
-            self.opts['default'] = None
-            self.setDefault(self.opts['value'])
     
         ## Connect all state changed signals to the general sigStateChanged
         self.sigValueChanged.connect(lambda param, data: self.emitStateChanged('value', data))
@@ -403,18 +399,25 @@ class Parameter(QtCore.QObject):
             
         
     def defaultValue(self):
-        """Return the default value for this parameter."""
-        return self.opts['default']
+        """Return the default value for this parameter.
+
+        None is returned if no default value has been set.
+        """
+        return self.opts.get('default', None)
         
     def setDefault(self, val):
         """Set the default value for this parameter."""
-        if self.opts['default'] == val:
+        if self.defaultValue() == val:
             return
+
         self.opts['default'] = val
         self.sigDefaultChanged.emit(self, val)
 
     def setToDefault(self):
-        """Set this parameter's value to the default."""
+        """Set this parameter's value to the default.
+
+        Does nothing if no default value has been set.
+        """
         if self.hasDefault():
             self.setValue(self.defaultValue())
 
@@ -424,7 +427,7 @@ class Parameter(QtCore.QObject):
         
     def valueIsDefault(self):
         """Returns True if this parameter's value is equal to the default value."""
-        return self.value() == self.defaultValue()
+        return self.hasDefault() and self.value() == self.defaultValue()
         
     def setLimits(self, limits):
         """Set limits on the acceptable values for this parameter. 
