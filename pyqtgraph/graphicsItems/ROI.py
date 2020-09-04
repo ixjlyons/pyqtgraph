@@ -1058,12 +1058,22 @@ class ROI(GraphicsObject):
         )
     
     def boundingRect(self):
-        return QtCore.QRectF(0, 0, self.state['size'][0], self.state['size'][1]).normalized()
+        # bounding rect must account for pen width
+        p = QtCore.QPointF(1, 0)
+        pw = self.pen.width() * self.pixelLength(p)
+        ph = self.pen.width() * self.pixelLength(p, ortho=True)
+        return QtCore.QRectF(-0.5*pw, -0.5*ph,
+                             self.state['size'][0] + pw,
+                             self.state['size'][1] + ph).normalized()
+
+    def roiRect(self):
+        """Get the ROI rect, not accounting for cosmetic pen width."""
+        return QtCore.QRectF(0, 0,
+                             self.state['size'][0],
+                             self.state['size'][1]).normalized()
 
     def paint(self, p, opt, widget):
-        # Note: don't use self.boundingRect here, because subclasses may need to redefine it.
-        r = QtCore.QRectF(0, 0, self.state['size'][0], self.state['size'][1]).normalized()
-        
+        r = self.roiRect()
         p.setRenderHint(QtGui.QPainter.Antialiasing)
         p.setPen(self.currentPen)
         p.translate(r.left(), r.top())
@@ -1098,7 +1108,7 @@ class ROI(GraphicsObject):
             tr.scale(float(dShape[0]) / img.width(), float(dShape[1]) / img.height())
         
         ## Transform ROI bounds into data bounds
-        dataBounds = tr.mapRect(self.boundingRect())
+        dataBounds = tr.mapRect(self.roiRect())
         
         ## Intersect transformed ROI bounds with data bounds
         if axisOrder == 'row-major':
@@ -1203,8 +1213,8 @@ class ROI(GraphicsObject):
         
         vectors = ((vx.x()*sx, vx.y()*sx), (vy.x()*sy, vy.y()*sy))
         if fromBoundingRect is True:
-            shape = self.boundingRect().width(), self.boundingRect().height()
-            origin = img.mapToData(self.mapToItem(img, self.boundingRect().topLeft()))
+            shape = self.roiRect().width(), self.roiRect().height()
+            origin = img.mapToData(self.mapToItem(img, self.roiRect().topLeft()))
             origin = (origin.x(), origin.y())
         else:
             shape = self.state['size']
