@@ -138,6 +138,7 @@ jobs:
         run: |
           cd doc
           make html SPHINXOPTS='-W --keep-going -v'
+          make doctest
 
   build-wheel:
     name: build wheel
